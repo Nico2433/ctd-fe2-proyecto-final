@@ -3,7 +3,12 @@ import { handlers } from "./mswHandlers";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import Quote from "../Quote";
 import { render } from "../../../test-utils";
-import { FETCH_STATUS, LOADING_MESSAGE, NOT_FOUND } from "../utils/constants";
+import {
+  FETCH_STATUS,
+  INVALID_NAME,
+  LOADING_MESSAGE,
+  NOT_FOUND,
+} from "../utils/constants";
 import { store } from "../../../redux/store";
 import { Provider } from "react-redux";
 
@@ -134,6 +139,51 @@ test("Obtener cita por personaje", async () => {
     // Verificar resultado
     expect(quoteText).toHaveTextContent(`${searchField} Quote`);
     expect(quoteAuthor).toHaveTextContent(`${searchField} Character`);
+  });
+});
+
+test("Campo de busqueda no valido", async () => {
+  // Estado inicial
+  const initialState = {
+    data: null,
+    status: FETCH_STATUS.INACTIVE,
+  };
+
+  render(
+    <Provider store={store}>
+      <Quote />
+    </Provider>,
+    { preloadedState: initialState }
+  );
+
+  // Campo a buscar
+  const searchField = "12345";
+
+  // Introducir texto
+  const inputElement = screen.getByRole("textbox");
+  fireEvent.change(inputElement, { target: { value: searchField } });
+
+  // Clickear boton de obtener cita
+  const obtainQuoteButton = screen.getByRole("button", {
+    name: "obtain quote",
+  });
+  fireEvent.click(obtainQuoteButton);
+
+  // Esperar resultado
+  await waitFor(() => {
+    const quoteText = screen.getByRole("paragraph", {
+      name: "quote text",
+    });
+
+    // Verificar store
+    const state = store.getState().quote;
+    expect(state.data).toBe(null);
+    expect(state.status).toBe(FETCH_STATUS.ERROR);
+
+    expect(quoteText).toBeInTheDocument();
+
+    // Verificar resultado
+    expect(quoteText).toHaveTextContent(INVALID_NAME);
   });
 });
 
